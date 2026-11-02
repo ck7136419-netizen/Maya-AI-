@@ -1,0 +1,11 @@
+{
+  "name": "Arushi AI Voice Assistant",
+  "description": "Real-time voice-to-voice multilingual AI assistant with native Gemini Live audio, natural Hindi/English/Hinglish speech, and device action execution.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,224 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Security Primitives & Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Owner email bootstrapper & database-backed admin verification
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'chunnakumar3675@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Startup connection validation endpoint
+    match /test/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Admin roles collection
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Entity Validators
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+        data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'preferredNickname', 'role', 'createdAt', 'updatedAt']) &&
+        data.uid == request.auth.uid &&
+        data.email is string && data.email.size() <= 256 &&
+        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128)) &&
+        (!('preferredNickname' in data) || (data.preferredNickname is string && data.preferredNickname.size() <= 64)) &&
+        (!('role' in data) || (data.role in ['user', 'admin', 'owner']));
+    }
+
+    function isValidUserPreference(data) {
+      return data.keys().hasAll(['userId', 'nickname', 'personality', 'language']) &&
+        data.keys().hasOnly(['userId', 'nickname', 'personality', 'language', 'geminiModel', 'temperature', 'ttsVoiceName', 'ttsPitch', 'ttsRate', 'soundEffects', 'theme', 'memoryEnabled', 'wakeWordEnabled', 'updatedAt']) &&
+        data.userId == request.auth.uid &&
+        data.nickname is string && data.nickname.size() <= 64 &&
+        data.personality in ['caring', 'romantic', 'witty', 'jarvis'] &&
+        data.language in ['hinglish', 'hindi', 'english'] &&
+        (!('geminiModel' in data) || (data.geminiModel is string && data.geminiModel.size() <= 64)) &&
+        (!('temperature' in data) || (data.temperature is number)) &&
+        (!('soundEffects' in data) || (data.soundEffects is bool)) &&
+        (!('memoryEnabled' in data) || (data.memoryEnabled is bool));
+    }
+
+    function isValidMemory(data) {
+      return data.keys().hasAll(['id', 'userId', 'content', 'category']) &&
+        data.keys().hasOnly(['id', 'userId', 'content', 'category', 'importance', 'createdAt', 'updatedAt']) &&
+        data.userId == request.auth.uid &&
+        data.id is string && data.id.size() <= 128 &&
+        data.content is string && data.content.size() > 0 && data.content.size() <= 2048 &&
+        data.category in ['preference', 'personal', 'work', 'habit', 'instruction'] &&
+        (!('importance' in data) || (data.importance is number));
+    }
+
+    function isValidConversation(data) {
+      return data.keys().hasAll(['id', 'userId', 'title']) &&
+        data.keys().hasOnly(['id', 'userId', 'title', 'summary', 'lastMessage', 'messageCount', 'createdAt', 'updatedAt']) &&
+        data.userId == request.auth.uid &&
+        data.id is string && data.id.size() <= 128 &&
+        data.title is string && data.title.size() <= 256 &&
+        (!('summary' in data) || (data.summary is string && data.summary.size() <= 1024)) &&
+        (!('lastMessage' in data) || (data.lastMessage is string && data.lastMessage.size() <= 1024)) &&
+        (!('messageCount' in data) || (data.messageCount is number));
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['id', 'conversationId', 'userId', 'role', 'text']) &&
+        data.keys().hasOnly(['id', 'conversationId', 'userId', 'role', 'text', 'timestamp', 'createdAt']) &&
+        data.userId == request.auth.uid &&
+        data.id is string && data.id.size() <= 128 &&
+        data.conversationId is string && data.conversationId.size() <= 128 &&
+        data.role in ['user', 'assistant'] &&
+        data.text is string && data.text.size() <= 8192;
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'completed', 'priority']) &&
+        data.keys().hasOnly(['id', 'userId', 'title', 'time', 'date', 'completed', 'priority', 'createdAt']) &&
+        data.userId == request.auth.uid &&
+        data.id is string && data.id.size() <= 128 &&
+        data.title is string && data.title.size() <= 512 &&
+        data.completed is bool &&
+        data.priority in ['low', 'medium', 'high'];
+    }
+
+    function isValidRemoteConfig(data) {
+      return data.keys().hasAll(['key', 'value']) &&
+        data.keys().hasOnly(['key', 'value', 'category', 'updatedBy', 'updatedAt']) &&
+        data.key is string && data.key.size() <= 128 &&
+        data.value is string && data.value.size() <= 8192;
+    }
+
+    function isValidFeatureFlag(data) {
+      return data.keys().hasAll(['featureKey', 'enabled']) &&
+        data.keys().hasOnly(['featureKey', 'enabled', 'description', 'minAppVersion', 'updatedAt']) &&
+        data.featureKey is string && data.featureKey.size() <= 64 &&
+        data.enabled is bool &&
+        (!('description' in data) || (data.description is string && data.description.size() <= 256));
+    }
+
+    function isValidAppVersion(data) {
+      return data.keys().hasAll(['versionCode', 'versionName', 'downloadUrl', 'isMandatory']) &&
+        data.keys().hasOnly(['versionCode', 'versionName', 'releaseNotes', 'downloadUrl', 'checksumSha256', 'isMandatory', 'releaseDate']) &&
+        data.versionCode is number &&
+        data.versionName is string && data.versionName.size() <= 32 &&
+        data.downloadUrl is string && data.downloadUrl.size() <= 1024 &&
+        data.isMandatory is bool;
+    }
+
+    // Collections & Rules
+
+    // 1. Users
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming()) &&
+        (!('role' in incoming()) || incoming().role == 'user' || isAdmin());
+      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin()) && isValidUser(incoming()) &&
+        incoming().uid == existing().uid &&
+        ((incoming().role == existing().role) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // 2. User Preferences
+    match /user_preferences/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUserPreference(incoming());
+      allow update: if isSignedIn() && request.auth.uid == userId && isValidUserPreference(incoming()) &&
+        incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // 3. Memories
+    match /memories/{memoryId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidMemory(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidMemory(incoming()) &&
+        incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // 4. Conversations
+    match /conversations/{conversationId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidConversation(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidConversation(incoming()) &&
+        incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+
+      // 4a. Messages subcollection
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+        allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+        allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidMessage(incoming());
+        allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidMessage(incoming()) &&
+          incoming().userId == existing().userId;
+        allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      }
+    }
+
+    // 5. Tasks
+    match /tasks/{taskId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidTask(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidTask(incoming()) &&
+        incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // 6. Remote Config (Read by authenticated users, written by Admin)
+    match /remote_config/{configId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() && isValidRemoteConfig(incoming());
+      allow update: if isAdmin() && isValidRemoteConfig(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // 7. Feature Flags (Read by authenticated users, managed by Admin)
+    match /feature_flags/{flagId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() && isValidFeatureFlag(incoming());
+      allow update: if isAdmin() && isValidFeatureFlag(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // 8. App Versions (Read by authenticated or public for in-app update checks)
+    match /app_versions/{versionId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidAppVersion(incoming());
+      allow update: if isAdmin() && isValidAppVersion(incoming());
+      allow delete: if isAdmin();
+    }
+  }
+}

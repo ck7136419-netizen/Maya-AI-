@@ -1,0 +1,183 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Authenticated user profile for YASMIN AI companion system.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "photoURL": { "type": "string", "maxLength": 512 },
+        "preferredNickname": { "type": "string", "maxLength": 64 },
+        "role": { "type": "string", "enum": ["user", "admin", "owner"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "UserPreference": {
+      "title": "UserPreference",
+      "description": "User specific personality, voice, and companion behavior preferences.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "nickname": { "type": "string", "maxLength": 64 },
+        "personality": { "type": "string", "enum": ["caring", "romantic", "witty", "jarvis"] },
+        "language": { "type": "string", "enum": ["hinglish", "hindi", "english"] },
+        "geminiModel": { "type": "string", "maxLength": 64 },
+        "temperature": { "type": "number" },
+        "ttsVoiceName": { "type": "string", "maxLength": 128 },
+        "ttsPitch": { "type": "number" },
+        "ttsRate": { "type": "number" },
+        "soundEffects": { "type": "boolean" },
+        "theme": { "type": "string", "maxLength": 32 },
+        "memoryEnabled": { "type": "boolean" },
+        "wakeWordEnabled": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "nickname", "personality", "language"]
+    },
+    "Memory": {
+      "title": "Memory",
+      "description": "Permanent long-term memory item retained by YASMIN across sessions and devices.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "content": { "type": "string", "maxLength": 2048 },
+        "category": { "type": "string", "enum": ["preference", "personal", "work", "habit", "instruction"] },
+        "importance": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "content", "category"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "Cloud persistent conversation session between user and YASMIN AI.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 256 },
+        "summary": { "type": "string", "maxLength": 1024 },
+        "lastMessage": { "type": "string", "maxLength": 1024 },
+        "messageCount": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "title"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Individual message in a conversation session.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "conversationId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "enum": ["user", "assistant"] },
+        "text": { "type": "string", "maxLength": 8192 },
+        "timestamp": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "conversationId", "userId", "role", "text"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Daily scheduled task or reminder synchronized across devices.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 512 },
+        "time": { "type": "string", "maxLength": 64 },
+        "date": { "type": "string", "maxLength": 64 },
+        "completed": { "type": "boolean" },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "title", "completed", "priority"]
+    },
+    "RemoteConfig": {
+      "title": "RemoteConfig",
+      "description": "Dynamic server-delivered AI persona parameters, prompt adjustments, and version guidelines.",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string", "maxLength": 128 },
+        "value": { "type": "string", "maxLength": 8192 },
+        "category": { "type": "string", "maxLength": 64 },
+        "updatedBy": { "type": "string", "maxLength": 128 },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["key", "value"]
+    },
+    "FeatureFlag": {
+      "title": "FeatureFlag",
+      "description": "Dynamic feature enablement toggled from remote admin dashboard.",
+      "type": "object",
+      "properties": {
+        "featureKey": { "type": "string", "maxLength": 64 },
+        "enabled": { "type": "boolean" },
+        "description": { "type": "string", "maxLength": 256 },
+        "minAppVersion": { "type": "string", "maxLength": 32 },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["featureKey", "enabled"]
+    },
+    "AppVersion": {
+      "title": "AppVersion",
+      "description": "Release distribution catalog, download links, SHA256 checksums, and update enforcement.",
+      "type": "object",
+      "properties": {
+        "versionCode": { "type": "number" },
+        "versionName": { "type": "string", "maxLength": 32 },
+        "releaseNotes": { "type": "string", "maxLength": 2048 },
+        "downloadUrl": { "type": "string", "maxLength": 1024 },
+        "checksumSha256": { "type": "string", "maxLength": 128 },
+        "isMandatory": { "type": "boolean" },
+        "releaseDate": { "type": "string" }
+      },
+      "required": ["versionCode", "versionName", "downloadUrl", "isMandatory"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles restricted to owner and administrators."
+    },
+    "/user_preferences/{userId}": {
+      "schema": "UserPreference",
+      "description": "User specific personality and companion settings."
+    },
+    "/memories/{memoryId}": {
+      "schema": "Memory",
+      "description": "Permanent long-term memory records indexed by userId."
+    },
+    "/conversations/{conversationId}": {
+      "schema": "Conversation",
+      "description": "Chat conversation sessions indexed by userId."
+    },
+    "/conversations/{conversationId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Messages inside conversation sessions."
+    },
+    "/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "User synchronized reminder tasks and protocols."
+    },
+    "/remote_config/{configId}": {
+      "schema": "RemoteConfig",
+      "description": "Application remote configuration readable by all authenticated users, writable only by owner/admin."
+    },
+    "/feature_flags/{flagId}": {
+      "schema": "FeatureFlag",
+      "description": "Dynamic app feature flags readable by authenticated users, manageable by admin."
+    },
+    "/app_versions/{versionId}": {
+      "schema": "AppVersion",
+      "description": "App release versions and updates registry."
+    }
+  }
+}

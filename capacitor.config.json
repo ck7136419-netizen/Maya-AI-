@@ -1,0 +1,21 @@
+{
+  "appId": "com.yasmin.ai.assistant",
+  "appName": "YASMIN AI",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1800,
+      "backgroundColor": "#050505"
+    }
+  }
+}
